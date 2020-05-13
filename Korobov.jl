@@ -6,7 +6,7 @@ function Korobov(N, a, d)
     end
 
     #Initial point of the sequence
-    u=[zeros(11)]
+    u=[zeros(d)]
 
     #Korobov sequence
     for j in 1:N-1
@@ -18,6 +18,3 @@ function Korobov(N, a, d)
     ucp=[rand(d)]
     map.([x->x%1], (u.+ucp))
 end
-
-#Example
-println(Korobov(1021, 65, 11))
