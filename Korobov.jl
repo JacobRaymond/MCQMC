@@ -1,4 +1,7 @@
+using Random
+
 function Korobov(N, a, d)
+
     #Create the vector that will house the powers of a
     g=[1]
     for i in 2:d
@@ -12,9 +15,12 @@ function Korobov(N, a, d)
     for j in 1:N-1
         ind=collect((j-1):(j+d-2)).%a .+1
         push!(u, ind.*g./N.%1)
-    end
+     end
 
     #Cranley-Patterson Rotation
     ucp=[rand(d)]
-    map.([x->x%1], (u.+ucp))
+    rqmc=map.([x->x%1], (u.+ucp))
+
+    #Reorder observations
+    Random.shuffle!(rqmc)
 end
