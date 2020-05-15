@@ -126,4 +126,5 @@ push!(rows, "β")
 header=["Pump" "MC" "QMC" "Ratio"]
 
 data=hcat(rows,round.(var_mc, digits=3), round.(var_qmc, digits=3), round.(var_mc./var_qmc, digits=3))
+println("Variance of Simulations, m=", m)
 pretty_table(data, header)
