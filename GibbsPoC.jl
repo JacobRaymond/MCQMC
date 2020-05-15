@@ -28,6 +28,11 @@ n=1021 #Number of iterations of the sampler
 
 for k in 1:m
     global lambda_gibbs
+
+    #Pre-allocated memory
+    lambda_n=Array{Float64}(undef, 0, 10)
+    b_n=Float64[]
+
     for j in 1:n
         global b
         global lambda
@@ -43,11 +48,19 @@ for k in 1:m
 
         #Draw the beta
         b=rand(InverseGamma(gam+10*a, sum(lambda)+del))
+
+        #Save
+        lambda_n=[lambda_n; lambda']
+        push!(b_n, b)
     end
+    
+    #Calculate estimate
+    lambda_mean= mean.([lambda_n[:,j] for j in 1:size(lambda_n,2)])
+    b_mean=mean(b_n)
 
     #Save the values
-    lambda_gibbs=[lambda_gibbs; lambda']
-    push!(b_gibbs, b)
+    lambda_gibbs=[lambda_gibbs; lambda_mean']
+    push!(b_gibbs, b_mean)
 end
 
 #Save outputs
@@ -72,6 +85,11 @@ for k in 1:m
     global lambda_gibbs
     #Generate RMQC points
     rqmc=Korobov(1021, 65, 11)
+
+    #Pre-allocated memory
+    lambda_n=Array{Float64}(undef, 0, 10)
+    b_n=Float64[]
+
     for j in 1:n
         global b
         global lambda
@@ -86,11 +104,19 @@ for k in 1:m
 
         #Draw the beta
         b=quantile(InverseGamma(gam+10*a, sum(lambda)+del), rqmc[j][11])
+
+        #Save
+        lambda_n=[lambda_n; lambda']
+        push!(b_n, b)
     end
 
+    #Calculate estimate
+    lambda_mean= mean.([lambda_n[:,j] for j in 1:size(lambda_n,2)])
+    b_mean=mean(b_n)
+
     #Save the values
-    lambda_gibbs=[lambda_gibbs; lambda']
-    push!(b_gibbs, b)
+    lambda_gibbs=[lambda_gibbs; lambda_mean']
+    push!(b_gibbs, b_mean)
 end
 
 #Save outputs
@@ -115,8 +141,6 @@ push!(var_mc, var(b_mc))
 var_qmc=var.([lambda_qmc[:,j] for j in 1:size(lambda_qmc,2)])
 push!(var_qmc, var(b_qmc))
 
-
-
 #Create row descriptions (for table)
 rows=[]
 for i in 1:10 push!(rows, "λ_"*string(i)) end
@@ -125,6 +149,6 @@ push!(rows, "β")
 #Create header
 header=["Pump" "MC" "QMC" "Ratio"]
 
-data=hcat(rows,round.(var_mc, digits=3), round.(var_qmc, digits=3), round.(var_mc./var_qmc, digits=3))
+data=hcat(rows,round.(var_mc, digits=9), round.(var_qmc, digits=9), round.(var_mc./var_qmc))
 println("Variance of Simulations, m=", m)
 pretty_table(data, header)
