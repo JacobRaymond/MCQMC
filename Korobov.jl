@@ -13,8 +13,9 @@ function Korobov(N, a, d)
 
     #Korobov sequence
     for j in 1:N-1
-        ind=collect((j-1):(j+d-2)).%a .+1
+        ind=collect((j-1):(j+d-2))
         push!(u, ind.*g./N.%1)
+        #push!(u, (u[j].+g./N).%1)
      end
 
     #Cranley-Patterson Rotation
