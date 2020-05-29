@@ -16,7 +16,7 @@ function crude_mcmc(prop)
             #Simulate new point
             y=rand(prop(x))
 
-            #Calculate Metropolis ration
+            #Calculate Metropolis ratio
             mh=(pdf(Normal(), y)*pdf(prop(y), x))/(pdf(Normal(), x)*pdf(prop(x), y))
 
             #Calculate acceptance probability
@@ -65,7 +65,7 @@ function qmc_mcmc(prop)
             #Simulate new point
             y_prop=quantile(prop(x), y[i])
 
-            #Calculate Metropolis ration
+            #Calculate Metropolis ratio
             mh=(pdf(Normal(), y_prop)*pdf(prop(y_prop), x))/(pdf(Normal(), x)*pdf(prop(x), y_prop))
 
             #Calculate acceptance probability
