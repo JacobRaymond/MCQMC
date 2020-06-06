@@ -1,5 +1,5 @@
 using Distributions, PrettyTables
-include("Korobov.jl")
+include("LCG.jl")
 
 #### Crude MCMC ####
 
@@ -46,8 +46,8 @@ function qmc_mcmc(prop)
     sim_res=Float64[]
     for j in 1:300
 
-        #Create a Korobov sequence
-        rqmc=Korobov(65521, 17364, 2)
+        #Create a CUD sequence
+        rqmc=lcg(65521, 17364, 2)
 
         #Extract proposals
         y=map(w->w[1], rqmc)
