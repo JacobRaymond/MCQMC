@@ -1,4 +1,4 @@
-using Distributions, PrettyTables
+using Distributions, PrettyTables, LatexPrint
 include("LCG.jl")
 
 #### Crude MCMC ####
@@ -121,3 +121,7 @@ ind_mse=round(res_ind_crude[2]/res_ind_qmc[2], digits=2)
 rw_mse=round(res_rw_crude[2]/res_rw_qmc[2], digits=2)
 println("Using quasi-Monte Carlo inputs reduced the MSE by a factor of ", ind_mse, " for the independence sampler, and by ",
 rw_mse, " for the random walk example.")
+
+#Output to LaTeX
+tabular(header)
+tabular(data)
