@@ -1,9 +1,10 @@
 using Random
 
-function lcg(N, a, d)
+function lcg(N, a, d, seed)
+
 
     #Generate starting value
-    u=[rand()]
+    u=[seed]
     x=N*u
 
     #Generate the x and u
@@ -30,4 +31,5 @@ function lcg(N, a, d)
     #Cranley-Patterson Rotation
     ucp=rand(d)
     rqmc=map(x->(x.+ucp).%1, z)
+
 end
