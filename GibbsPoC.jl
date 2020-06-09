@@ -1,5 +1,5 @@
 using Distributions, PrettyTables
-include("Korobov.jl")
+include("LCG.jl")
 
 # Load data arrays
 s=[5,1,5,14,3,19,1,1,4,22]
@@ -13,24 +13,24 @@ gam=0.1
 
 #### Crude Method (see DOI: 10.2307/2289776) ####
 
+
 #Initial values
 init=s./t #MLE
 b=(sum(init)+del)/(gam+10*a-1)#Mean of a IG(gamma+10a, ∑lambda+∂)
 
 #Array to house the observations
-lambda_gibbs= Array{Float64}(undef, 0, 10)
+lambda_gibbs= [Array{Float64}(undef, 10)]
 b_gibbs=Float64[]
 
-#Gibbs Sampler
-
-m=300 #Number of times the sampler is repeated
-n=1021 #Number of iterations of the sampler
+#Draw the lambdas
+m=300 #The algorithm is repeated 300 times, as per Owen and Tribble
+n=1022 #Number of iterations of the sampler
 
 for k in 1:m
     global lambda_gibbs
 
     #Pre-allocated memory
-    lambda_n=Array{Float64}(undef, 0, 10)
+    lambda_n=[init]
     b_n=Float64[]
 
     for j in 1:n
@@ -40,31 +40,31 @@ for k in 1:m
         global t
         local lambda_gibbs
 
+        #Draw the beta
+        b=rand(InverseGamma(gam+10*a, sum(lambda_n[j])+del))
+
         #Draw the lambdas
         lambda=Float16[rand(Gamma(a+s[1], 1/(t[1]+1/b)))]
         for i in 2:10
             push!(lambda, rand(Gamma(a+s[i], 1/(t[i]+1/b))))
         end
 
-        #Draw the beta
-        b=rand(InverseGamma(gam+10*a, sum(lambda)+del))
-
         #Save
-        lambda_n=[lambda_n; lambda']
+        lambda_n=push!(lambda_n, lambda)
         push!(b_n, b)
     end
-    
+
     #Calculate estimate
-    lambda_mean= mean.([lambda_n[:,j] for j in 1:size(lambda_n,2)])
+    lambda_mean= sum(lambda_n)./n
     b_mean=mean(b_n)
 
     #Save the values
-    lambda_gibbs=[lambda_gibbs; lambda_mean']
+    lambda_gibbs=push!(lambda_gibbs, lambda_mean)
     push!(b_gibbs, b_mean)
 end
 
 #Save outputs
-lambda_mc=lambda_gibbs
+lambda_mc=lambda_gibbs[2:m+1]
 b_mc=b_gibbs
 
 #### RQMC Method (see  DOI: 10.1073/pnas.0409596102)####
@@ -74,20 +74,24 @@ init=s./t #MLE
 b=(sum(init)+del)/(gam+10*a-1)#Mean of a IG(gamma+10a, ∑lambda+∂)
 
 #Array to house the observations
-lambda_gibbs= Array{Float64}(undef, 0, 10)
-b_gibbs=Float16[]
+lambda_gibbs= [Array{Float64}(undef, 10)]
+b_gibbs=Float64[]
 
 #Draw the lambdas
 m=300 #The algorithm is repeated 300 times, as per Owen and Tribble
-n=1021 #Number of iterations of the sampler
+n=1022 #Number of iterations of the sampler
+
+#Seed
+seed=rand()
 
 for k in 1:m
     global lambda_gibbs
+    global init
     #Generate RMQC points
-    rqmc=Korobov(1021, 65, 11)
+    rqmc=lcg(1021, 65, 11, seed)
 
     #Pre-allocated memory
-    lambda_n=Array{Float64}(undef, 0, 10)
+    lambda_n=[init]
     b_n=Float64[]
 
     for j in 1:n
@@ -96,49 +100,49 @@ for k in 1:m
         global s
         global t
 
+        #Draw the beta
+        b=quantile(InverseGamma(gam+10*a, sum(lambda_n[j])+del), rqmc[j][1])
+
         #Draw the lambdas
-        lambda=Float16[quantile(Gamma(a+s[1], 1/(t[1]+1/b)), rqmc[j][1])]
+        lambda=Float16[quantile(Gamma(a+s[1], 1/(t[1]+1/b)), rqmc[j][2])]
         for i in 2:10
-            push!(lambda, quantile(Gamma(a+s[i], 1/(t[i]+1/b)), rqmc[j][i]))
+            push!(lambda, quantile(Gamma(a+s[i], 1/(t[i]+1/b)), rqmc[j][i+1]))
         end
 
-        #Draw the beta
-        b=quantile(InverseGamma(gam+10*a, sum(lambda)+del), rqmc[j][11])
-
         #Save
-        lambda_n=[lambda_n; lambda']
+        lambda_n=push!(lambda_n, lambda)
         push!(b_n, b)
     end
 
     #Calculate estimate
-    lambda_mean= mean.([lambda_n[:,j] for j in 1:size(lambda_n,2)])
+    lambda_mean= sum(lambda_n)./n
     b_mean=mean(b_n)
 
     #Save the values
-    lambda_gibbs=[lambda_gibbs; lambda_mean']
+    lambda_gibbs=push!(lambda_gibbs, lambda_mean)
     push!(b_gibbs, b_mean)
 end
 
 #Save outputs
-lambda_qmc=lambda_gibbs
+lambda_qmc=lambda_gibbs[2:m+1]
 b_qmc=b_gibbs
 
 #### Output ####
 
 #Calculate estimators, MC Method
-result_mc=mean.([lambda_mc[:,j] for j in 1:size(lambda_mc,2)])
+result_mc=sum(lambda_mc)/m
 push!(result_mc, mean(b_mc))
 println("The estimators, calculated using the crude MC method, are [λ_1, ..., λ_10, β]=", round.(result_mc, digits=3))
 
 #Calculate estimators, QMC Method
-result_qmc=mean.([lambda_qmc[:,j] for j in 1:size(lambda_qmc,2)])
+result_qmc=sum(lambda_qmc)/m
 push!(result_qmc, mean(b_qmc))
 println("The estimators, calculated using QMC inputs, are [λ_1, ..., λ_10, β]=", round.(result_qmc, digits=3))
 
 #Calculate variances
-var_mc=var.([lambda_mc[:,j] for j in 1:size(lambda_mc,2)])
+var_mc=sum(map(x->x.^2, (lambda_mc.-[result_mc[1:10]])))/m
 push!(var_mc, var(b_mc))
-var_qmc=var.([lambda_qmc[:,j] for j in 1:size(lambda_qmc,2)])
+var_qmc=sum(map(x->x.^2, (lambda_qmc.-[result_qmc[1:10]])))/m
 push!(var_qmc, var(b_qmc))
 
 #Create row descriptions (for table)
