@@ -45,12 +45,10 @@ end
 function qmc_mcmc(prop)
     sim_res=Float64[]
 
-    seed=rand()
-
     for j in 1:300
 
         #Create a CUD sequence
-        rqmc=lcg(65521, 17364, 2, seed)
+        rqmc=lcg(65521, 17364, 2)
 
         #Extract proposals
         y=map(w->w[1], rqmc)
