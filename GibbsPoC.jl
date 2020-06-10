@@ -24,7 +24,7 @@ b_gibbs=Float64[]
 
 #Draw the lambdas
 m=300 #The algorithm is repeated 300 times, as per Owen and Tribble
-n=1022 #Number of iterations of the sampler
+n=1021 #Number of iterations of the sampler
 
 for k in 1:m
     global lambda_gibbs
@@ -79,16 +79,14 @@ b_gibbs=Float64[]
 
 #Draw the lambdas
 m=300 #The algorithm is repeated 300 times, as per Owen and Tribble
-n=1022 #Number of iterations of the sampler
+n=1021 #Number of iterations of the sampler
 
-#Seed
-seed=rand()
 
 for k in 1:m
     global lambda_gibbs
     global init
     #Generate RMQC points
-    rqmc=lcg(1021, 65, 11, seed)
+    rqmc=lcg(1021, 65, 11)
 
     #Pre-allocated memory
     lambda_n=[init]
