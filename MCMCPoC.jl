@@ -1,4 +1,4 @@
-using Distributions, PrettyTables, LatexPrint
+using Distributions, PrettyTables
 include("LCG.jl")
 
 #### Crude MCMC ####
