@@ -1,18 +1,18 @@
 using CSV, Distributions, LinearAlgebra
 
 #Import the data  (https://fred.stlouisfed.org/graph/?g=r6hR)
-Y_dat=CSV.read("/Users/JacobRaymond 1/Desktop/WTB6MS.csv")
-Y_dat=Y_dat.WTB6MS
+Y_dat=CSV.read("/Users/JacobRaymond 1/Desktop/WTB6MS.csv").WTB6MS./100
+
 
 #Set variables
 M=20
-del_plus=1/52
+del_plus=1
 del=del_plus/(M+1)
-T=length(Y_dat)-1
+T=length(Y_dat)
 
 #Simulate initial parameter values
-a=rand()
-b=rand()
+a=mean(Y_dat)
+b=0.01
 phi=[[a,b]]
 sig=var(Y_dat) #Initial value: the variance of the yields
 sig_vec=[sig]
@@ -46,45 +46,50 @@ for k in 1:N
     #Initialize
     Y_star=deepcopy(Y);
     #Simulate augmented data
-    for i in 1:T
-        for j in 1:M
-            push!(Y_star[i], augsim(Y_star[i][j], a, b, del, sig))
+    if M>0
+        for i in 1:T-1
+            for j in 1:M
+                push!(Y_star[i], augsim(Y_star[i][j], a, b, del, sig))
+            end
         end
     end
+    Y_star=collect(Iterators.flatten(Y_star))
 
     #Calculate some variables for the distribution of (a,b)
-    A=sum(map(y->sum( map(x->1/x, y)), Y_star))
-    B=sum(map(x->sum(x), Y_star))
-    C=sum(map(x->sum(diff(x)./x[1:M]), Y_star))
-    D=sum(map(x->sum(-diff(x)), Y_star))
+    A=sum(1 ./Y_star)
+    B=sum(Y_star)
+    C=sum(diff(Y_star)./Y_star[1:length(Y_star)-1])
+    D=sum(-diff(Y_star))
 
     #Create matrix components
     a11=(del*A)/sig
-    a12=-(del*(T-1)*(M+1))/sig
+    a12= -(del*(T-1)*(M+1))/sig
     a22=(del*B)/sig
 
     #Find the mean
     mu=[(a22*C-a12*D)/(a11*a22-a12^2), (a11*D-a12*C)/(a11*a22-a12^2)]
 
     #Variance-covariance matrix
-    vcov= (1/(a11*a22-a12^2))*[a22 -a12; -a12 a11]
+    vcov= [a11 a12; a12 a22]
+    vcov=inv(vcov)
     phi_it=rand(MvNormal(mu, vcov))
+    #while(!all(>=(0), phi_it))
+        #phi_it=rand(MvNormal(mu, vcov))
+    #end
 
     #Save values
-    a=phi_it[1]
-    b=phi_it[2]
-    push!(phi, phi_it)
+    if phi_it[1]>0
+        a=phi_it[1]
+    end
+    if phi_it[2]>0
+        b=phi_it[2]
+    end
+    push!(phi, [a,b])
 
     #Calculate some variables for the distribution of sigma^2
     E=0.5*(T-1)*(M+1)
-    function F_fun(x)
-        val_tot=0
-        for i in 1:M
-            val_tot+=((x[i+1]-(a+b*x[i])*del)^2)/(2*x[i])
-        end
-        val_tot
-    end
-    F=sum(map(x->F_fun(x), Y_star))
+
+    F=sum(((diff(Y_star).-(a.-b*Y_star[1:length(Y_star)-1])*del).^2)./(2*Y_star[1:length(Y_star)-1]))
 
     #Generate a new value of sigma^2
     sig=rand(InverseGamma(E, F))
@@ -92,7 +97,7 @@ for k in 1:N
 end
 
 #Estimate for a and b (500 observation burn)
-mean(phi[500:1500])
+println(mean(phi[500:1500]))
 
 #Estimate for sigma^2
-mean(sig_vec[500:1500])
+println(mean(sig_vec[500:1500]))
