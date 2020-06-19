@@ -10,6 +10,8 @@ GibbsPoC.jl: An implementation of the second example from "A quasi-Monte Carlo M
 
 CIRPoC.jl: An implementation of the CIR Gibbs sampler from "Bayesian Estimation of CIR Model" by Feng and Xie (http://www.jds-online.com/files/JDS-746.pdf ). WTB6MS is the required dataset. - WORK IN PROGRESS
 
+CIRPoC.R: An implementation of the CIR Gibbs sampler from "Bayesian Estimation of CIR Model" by Feng and Xie (http://www.jds-online.com/files/JDS-746.pdf ). WTB6MS is the required dataset. More advanced than the Julia version, this code iterates the Gibbs sampler multiple times and examines two solutions to prevent negative values for the rates: acceptance/rejection and transformation. R is chosen for two reasons: Efficiency is not emphasized here, and I find it more flexible for experimentation than Julia. - WORK IN PROGRESS
+
 ## QMC Methods
 Koborov.jl: Function to generate a Koborov point set.
 
