@@ -6,16 +6,16 @@ Y_dat=CSV.read("/Users/JacobRaymond 1/Desktop/WTB6MS.csv").WTB6MS./100
 
 #Set variables
 M=20
-del_plus=1
+del_plus=1/52
 del=del_plus/(M+1)
 T=length(Y_dat)
 
 #Simulate initial parameter values
-a=mean(Y_dat)
-b=0.01
-phi=[[a,b]]
-sig=var(Y_dat) #Initial value: the variance of the yields
+sig=0.0014 #Initial value: the variance of the yields
 sig_vec=[sig]
+a=rand(Uniform(0, sqrt(sig)))
+b=rand(Uniform(0, sqrt(sig)))
+phi=[[a,b]]
 
 #Create Y
 Y=Array[];
@@ -28,7 +28,10 @@ pop!(Y)
 function augsim(y, a, b, del, sig)
     mean_sim=y+(a-b*y)*del
     var_sim=sig*del*y
-    rand(Normal(mean_sim, sqrt(var_sim)))
+    candidate=rand(Normal(mean_sim, sqrt(var_sim)))
+    if candidate>0
+        candidate
+    else y end
 end
 
 #Number of iterations
@@ -73,17 +76,11 @@ for k in 1:N
     vcov= [a11 a12; a12 a22]
     vcov=inv(vcov)
     phi_it=rand(MvNormal(mu, vcov))
-    #while(!all(>=(0), phi_it))
-        #phi_it=rand(MvNormal(mu, vcov))
-    #end
+
 
     #Save values
-    if phi_it[1]>0
-        a=phi_it[1]
-    end
-    if phi_it[2]>0
-        b=phi_it[2]
-    end
+    a=phi_it[1]
+    b=phi_it[2]
     push!(phi, [a,b])
 
     #Calculate some variables for the distribution of sigma^2
@@ -101,3 +98,8 @@ println(mean(phi[500:1500]))
 
 #Estimate for sigma^2
 println(mean(sig_vec[500:1500]))
+
+#Estimate for the mean of the y_dat
+a_es=mean(phi[500:1500])[1]
+b_es=mean(phi[500:1500])[2]
+print(a_es/b_es) #Should be close to 0.023
