@@ -1,6 +1,8 @@
 # MCQMC
 Code to support my master's research on Markov Chain quasi-Monte Carlo methods for term structure model parameter estimation.
 
+CIR.jl: A Gibbs sampler to estimate the parameters of a Cox-Ingersoll-Ross model. See http://home.uchicago.edu/~lhansen/JP_handbook.pdf for details - WORK IN PROGRESS
+
 ## Proofs of Concept
 MCMC.jl: A simple Metropolis-Hastings algorithm in Julia, as a proof of concept.
 
