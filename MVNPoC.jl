@@ -1,5 +1,6 @@
 using Distributions, PrettyTables, LinearAlgebra
 include("LCG.jl")
+include("MVN_QMC.jl")
 
 #### Crude MCMC ####
 
@@ -33,10 +34,10 @@ function crude_mcmc(prop)
     #Mean
     Mean= mean(sim_res)
 
-    #Variance
-    Variance=var(sim_res)
+    #MSE (the true value is 0)
+    MSE=mean(map(x->x.^2, sim_res))
 
-    (Mean, Variance)
+    (Mean, MSE)
 end
 
 
@@ -45,10 +46,8 @@ end
 function qmc_mcmc(prop)
     sim_res=[]
 
-    #Cholesky decomposition
+    #Correlation Matrix
     Sigma=Matrix(Diagonal(repeat([0.1], 20)))
-    A=cholesky(Sigma)
-    A=A.U
 
     for j in 1:100
 
@@ -62,8 +61,7 @@ function qmc_mcmc(prop)
         for i in 1:1021
 
             #Simulate new point
-            z=map(x->quantile(Normal(), x), u[i][1:20])
-            y=x+A*z
+            y=MVN_QMC(u[i][1:20], x, Sigma)
 
             #Calculate Metropolis ratio
             mh=(pdf(MvNormal(Diagonal(ones(20))), y)*pdf(prop(y), x))/(pdf(MvNormal(Diagonal(ones(20))), x)*pdf(prop(x), y))
@@ -82,16 +80,22 @@ function qmc_mcmc(prop)
     #Mean
     Mean= mean(sim_res)
 
-    #MSE (true value is 0)
-    Variance=var(sim_res)
+    #MSE (the true value is 0)
+    MSE=mean(map(x->x.^2, sim_res))
 
-    (Mean, Variance)
+    (Mean, MSE)
 end
 
+#### Simulation Study ###
+
+#Random Walk
 function prop_rw(w)
     MvNormal(w, Diagonal(repeat([0.1], 20)))
 end
-
 res_mc=crude_mcmc(prop_rw)
 res_qmc=qmc_mcmc(prop_rw)
-println(res_mc.-res_qmc)
+
+#Output in table
+data=Any[round.(res_mc[1], digits=3) round.(res_qmc[1], digits=3) round.(res_mc[2], digits=3) round.(res_qmc[2], digits=3) round.(res_mc[2]./res_qmc[2], digits=3)]
+header=["Mean (MC)" "Mean(QMC)" "MSE (MC)" "MSE (QMC)" "Ratio"]
+pretty_table(data, header)
