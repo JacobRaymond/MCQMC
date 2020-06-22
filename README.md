@@ -21,3 +21,5 @@ CIRPoC.R: An implementation of the CIR Gibbs sampler from "Bayesian Estimation o
 Koborov.jl: Function to generate a Koborov point set.
 
 LCG.jl: Function to generate points from a linear congruential generator.
+
+MVN_QMC.jl: Generate QMC draws from a MVN(mu, Sigma) distribution.
