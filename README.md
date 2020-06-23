@@ -23,3 +23,5 @@ Koborov.jl: Function to generate a Koborov point set.
 LCG.jl: Function to generate points from a linear congruential generator.
 
 MVN_QMC.jl: Generate QMC draws from a MVN(mu, Sigma) distribution.
+
+IW_QMC.jl: Generate QMC draws from a IW(v, X) distribution.
