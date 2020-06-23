@@ -24,4 +24,4 @@ LCG.jl: Function to generate points from a linear congruential generator.
 
 MVN_QMC.jl: Generate QMC draws from a MVN(mu, Sigma) distribution.
 
-IW_QMC.jl: Generate QMC draws from a IW(v, X) distribution.
+IW_QMC.jl: Generate QMC draws from a IW(v, X) distribution. Based on the inverse-Wishart generation method proposed by Jones (https://doi.org/10.1080/03610918508812454)
