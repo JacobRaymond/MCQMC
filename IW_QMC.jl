@@ -1,5 +1,7 @@
 using LinearAlgebra, Distributions
 
+#u must be of length ∑^d_{i=1} i
+
 IW_QMC=function(u, X, v)
     #Dimensions
     d=size(X,1)
