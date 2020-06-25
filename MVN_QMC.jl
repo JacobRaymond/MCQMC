@@ -1,3 +1,7 @@
+using LinearAlgebra, Distributions
+
+#u must be of length d
+
 function MVN_QMC(u, mu, Sigma)
 
     #Cholesky decomposition
