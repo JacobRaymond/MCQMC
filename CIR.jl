@@ -8,6 +8,9 @@ Y=CSV.read("/Users/JacobRaymond 1/Library/Mobile Documents/com~apple~CloudDocs/M
 Y=Y[497:520]
 Y=Y./12
 
+#### MCMC ####
+
+
 @time begin
 
 r_iterations=[]
@@ -32,7 +35,7 @@ b_q=0.01/12
 a_p=0.0001/12
 b_p=0.0001/12
 
-for j in 1:300
+for j in 1:100
 
     #Vector to house the observations
     ap_gibbs=[]
@@ -55,7 +58,7 @@ for j in 1:300
         2*(1-exp(gam*tau))/((b+gam)*(exp(gam*tau)-1)+2*gam)
     end
 
-    for i in 1:1000
+    for i in 1:16381
         global sig
         global r
         global b_q
@@ -109,10 +112,12 @@ for j in 1:300
 
         #Generate new sigma
         phi_sig=(diff(r).-a_p.-b_p.*r[1:t-1])./r[1:t-1]
-        sig_can=rand(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2))
-        sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can, t).-beta_r(b_q, sig_can, t).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e),Y)
-        if rand()< sig_ratio*pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig_can)
-            sig=sig_can
+        if sum(phi_sig) >0
+            sig_can=rand(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2))
+            sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can, t).-beta_r(b_q, sig_can, t).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e),Y)
+            if rand()< sig_ratio*pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig_can)
+                sig=sig_can
+            end
         end
 
         #Generate new r
@@ -137,6 +142,8 @@ for j in 1:300
     push!(sig_iterations, mean(sig_gibbs))
 end
 
+println("Variances (Crude MCMC):")
+
 header=["r", "∑_e", "a^P", "b^P", "a^Q", "b^Q", "sigma^2"]
 data=hcat(mean(var(r_iterations)),mean(var(Sige_iterations)), var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations), var(sig_iterations))
 pretty_table(data, header)
@@ -148,13 +155,13 @@ end
 
 @time begin
 
-r_iterations=[]
-Sige_iterations=[]
-aq_iterations=[]
-bq_iterations=[]
-bp_iterations=[]
-ap_iterations=[]
-sig_iterations=[]
+r_iterations_qmc=[]
+Sige_iterations_qmc=[]
+aq_iterations_qmc=[]
+bq_iterations_qmc=[]
+bp_iterations_qmc=[]
+ap_iterations_qmc=[]
+sig_iterations_qmc=[]
 
 #Set variables
 t=length(Y)
@@ -268,17 +275,17 @@ for j in 1:100
         push!(r_gibbs, r)
     end
 
-    push!(r_iterations, mean(r_gibbs))
-    push!(Sige_iterations, mean(Sige_gibbs))
-    push!(aq_iterations, mean(aq_gibbs))
-    push!(bq_iterations, mean(bq_gibbs))
-    push!(ap_iterations, mean(ap_gibbs))
-    push!(bp_iterations, mean(bp_gibbs))
-    push!(sig_iterations, mean(sig_gibbs))
+    push!(r_iterations_qmc, mean(r_gibbs))
+    push!(Sige_iterations_qmc, mean(Sige_gibbs))
+    push!(aq_iterations_qmc, mean(aq_gibbs))
+    push!(bq_iterations_qmc, mean(bq_gibbs))
+    push!(ap_iterations_qmc, mean(ap_gibbs))
+    push!(bp_iterations_qmc, mean(bp_gibbs))
+    push!(sig_iterations_qmc, mean(sig_gibbs))
 end
 
 header=["r", "∑_e", "a^P", "b^P", "a^Q", "b^Q", "sigma^2"]
-data=hcat(mean(var(r_iterations)),mean(var(Sige_iterations)), var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations), var(sig_iterations))
-pretty_table(data, header)
+data_qmc=hcat(mean(var(r_iterations_qmc)),mean(var(Sige_iterations_qmc)), var(ap_iterations_qmc), var(bp_iterations_qmc), var(aq_iterations_qmc), var(bq_iterations_qmc), var(sig_iterations_qmc))
+pretty_table(data_qmc, header)
 
 end
