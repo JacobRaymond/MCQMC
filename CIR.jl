@@ -141,13 +141,6 @@ for j in 1:100
     push!(bp_iterations, mean(bp_gibbs))
     push!(sig_iterations, mean(sig_gibbs))
 end
-
-println("Variances (Crude MCMC):")
-
-header=["r", "∑_e", "a^P", "b^P", "a^Q", "b^Q", "sigma^2"]
-data=hcat(mean(var(r_iterations)),mean(var(Sige_iterations)), var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations), var(sig_iterations))
-pretty_table(data, header)
-
 end
 
 
@@ -283,9 +276,31 @@ for j in 1:100
     push!(bp_iterations_qmc, mean(bp_gibbs))
     push!(sig_iterations_qmc, mean(sig_gibbs))
 end
-
-header=["r", "∑_e", "a^P", "b^P", "a^Q", "b^Q", "sigma^2"]
-data_qmc=hcat(mean(var(r_iterations_qmc)),mean(var(Sige_iterations_qmc)), var(ap_iterations_qmc), var(bp_iterations_qmc), var(aq_iterations_qmc), var(bq_iterations_qmc), var(sig_iterations_qmc))
-pretty_table(data_qmc, header)
-
 end
+
+#### Output Results ####
+
+#Show results for the (a,b)s and sigma^2
+header_ab=["","Variance (MC)", "Variance (QMC)", "Ratio"]
+cols=["a^P", "b^P", "a^Q", "b^Q", "σ^2"]
+data_ab_mc=vcat(var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations_qmc), var(sig_iterations))
+data_ab_qmc=vcat(var(ap_iterations_qmc), var(bp_iterations_qmc), var(aq_iterations_qmc), var(bq_iterations_qmc), var(sig_iterations_qmc))
+data_ab=hcat(cols, data_ab_mc, data_ab_qmc, data_ab_mc./data_ab_qmc)
+data_ab[6:20]=map(x->round.(x, digits=3), data_ab[6:20])
+pretty_table(data_ab, header_ab)
+
+#Shows results for r
+println("Variance of the elements in vector r:")
+data_r=hcat(var(r_iterations), var(r_iterations_qmc), var(r_iterations)./var(r_iterations_qmc))
+data_r=map(x->round.(x, digits=3), data_r)
+header_r=["Variance (MC)", "Variance (QMC)", "Ratio"]
+pretty_table(data_r, header_r)
+println("The mean reduction in variance is ", mean(var(r_iterations)./var(r_iterations_qmc)))
+
+#Show results for ∑_ε
+
+println("Variance Reduction for the matrix Σ_ε:")
+
+display(map(x->round.(x, digits=3), var(Sige_iterations)./var(Sige_iterations_qmc)))
+
+println("The mean reduction in variance is ", mean(var(Sige_iterations)./var(Sige_iterations_qmc)))
