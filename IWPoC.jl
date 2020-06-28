@@ -19,7 +19,7 @@ for k in 1:100
         x=x*transpose(x)
         mh_pts=[x]
 
-        for i in 1:32749
+        for i in 1:1021
 
             #Simulate new point
             y=rand(InverseWishart(v, X))
@@ -41,11 +41,11 @@ end
 println("Mean Estimate (MC)")
 pretty_table(round.(mean(sim_res), digits=5), tf = borderless, noheader = true)
 
-#MSE
-MSE_mat=map(x->x-Diagonal(ones(3)), sim_res)
-MSE_mat_mc=map(x->x.^2, MSE_mat)
-println("MSE (MC)")
-pretty_table(round.(mean(MSE_mat_mc), digits=5), tf = borderless, noheader = true)
+#MAE
+MAE_mat=map(x->x-Diagonal(ones(3)), sim_res)
+MAE_mat_mc=map(x->abs.(x), MAE_mat)
+println("MAE (MC)")
+pretty_table(round.(mean(MAE_mat_mc), digits=5), tf = borderless, noheader = true)
 
 
 #### MCQMC ####
@@ -66,9 +66,9 @@ for k in 1:100
         mh_pts=[x]
 
         #QMC Points
-        u=lcg(32749, 219, 7)
+        u=lcg(1021, 65, 7)
 
-        for i in 1:32749
+        for i in 1:1021
 
             #Simulate new point
             y=IW_QMC(u[i][1:6], X, v)
@@ -91,13 +91,13 @@ end
 println("Mean Estimate (QMC)")
 pretty_table(round.(mean(sim_res), digits=5), tf = borderless, noheader = true)
 
-#MSE
-MSE_mat=map(x->x-Diagonal(ones(3)), sim_res)
-MSE_mat_qmc=map(x->x.^2, MSE_mat)
-println("MSE (QMC)")
-pretty_table(round.(mean(MSE_mat_qmc), digits=5), tf = borderless, noheader = true)
+#MAE
+MAE_mat=map(x->x-Diagonal(ones(3)), sim_res)
+MAE_mat_qmc=map(x->abs.(x), MAE_mat)
+println("MAE (QMC)")
+pretty_table(round.(mean(MAE_mat_qmc), digits=5), tf = borderless, noheader = true)
 
 ####Variance Reduction####
 println("Variance Reduction:")
-MSE_red=MSE_mat_mc ./ MSE_mat_qmc
-pretty_table(round.(abs.(mean(MSE_red)), digits=5), tf = borderless, noheader = true)
+MAE_red=mean(MAE_mat_mc) ./ mean(MAE_mat_qmc)
+pretty_table(round.(abs.(MAE_red), digits=5), tf = borderless, noheader = true)
