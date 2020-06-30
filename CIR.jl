@@ -23,17 +23,17 @@ sig_iterations=[]
 
 #Set variables
 t=length(Y)
-Sig=[100 0.0; 0.0 100]
-Sig=inv(Sig)
-mu_p=[0.00, 0.00]
+Sig_ab=[0.1 0.0; 0.0 0.1]
+Sig=inv(Sig_ab)
+mu_p=[0.01, 0.01]
 
 #Initial values
 r=Y
-sig=rand(InverseGamma(1))
-a_q=0.01/12
-b_q=0.01/12
-a_p=0.0001/12
-b_p=0.0001/12
+sig=rand(InverseGamma())
+a_q=rand(Uniform(0, sig))
+b_q=rand(Uniform(0, sig))
+a_p=rand(Uniform(0, sig))
+b_p=rand(Uniform(0, sig))
 
 for j in 1:100
 
@@ -50,7 +50,7 @@ for j in 1:100
     #Beta distributions
     beta_y=function(a, b, sig, tau)
         gam=sqrt(b^2+2*sig)
-        (a/sig)*(2*log(2*gam/((b+gam)*(exp(gam*tau)-1)+2*gam))+(b+gam)*tau)
+        (a/sig)*(2*log(2*gam/((b+gam)*(exp(gam*tau)-1)+2*gam)+(b+gam))*tau)
     end
 
     beta_r=function(b, sig, tau)
@@ -58,7 +58,7 @@ for j in 1:100
         2*(1-exp(gam*tau))/((b+gam)*(exp(gam*tau)-1)+2*gam)
     end
 
-    for i in 1:16381
+    for i in 1:1021
         global sig
         global r
         global b_q
@@ -70,7 +70,7 @@ for j in 1:100
         l11=sum(1 ./(sig.*r))
         l12= (t-1)/sig
         l22= sum(r./sig)
-        A=sum(diff(r)./r[1:length(r)-1])
+        A=sum(-diff(r)./r[1:length(r)-1])
         B=sum(-diff(r))
 
         #Find the mean
@@ -92,15 +92,16 @@ for j in 1:100
 
         #Generate Sig_e
         w=Y.-beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r
-        Sig_e=rand(InverseWishart(t+1.0, w*transpose(w)+Diagonal(ones(t))))
+        Sig_e=rand(InverseWishart(t+1.0, w*transpose(w)+Diagonal(ones(t)))) #Assuming a prior matrix of I and degs of freedom of t
         push!(Sige_gibbs, Sig_e)
 
         #Generate the (a,b)^Q
-        ab_can=rand(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]))
+        ab_can=rand(MvNormal([a_q, b_q], [0.0001 0.0; 0.0 0.0001])) #Assuming low variance on diagonals
         a_can=ab_can[1]
         b_can=ab_can[2]
         if all(i -> i > 0, ab_can)
             q_ratio=pdf(MvNormal(beta_y(a_can, b_can, sig, t).-beta_r(b_can, sig, t).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e),Y)
+            q_ratio=q_ratio*pdf(MvNormal(mu_p, Sig_ab),ab_can)/pdf(MvNormal(mu_p, Sig_ab),[a_q, b_q]) #Prior distribution
             if q_ratio*(pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),[a_q, b_q])/pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),ab_can))>rand()
                 a_q=a_can
                 b_q=b_can
@@ -111,7 +112,7 @@ for j in 1:100
 
 
         #Generate new sigma
-        phi_sig=(diff(r).-a_p.-b_p.*r[1:t-1])./r[1:t-1]
+        phi_sig=((diff(r).-a_p.-b_p.*r[1:t-1]).^2)./r[1:t-1]
         if sum(phi_sig) >0
             sig_can=rand(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2))
             sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can, t).-beta_r(b_q, sig_can, t).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e),Y)
@@ -121,11 +122,12 @@ for j in 1:100
         end
 
         #Generate new r
-        r_can=rand(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e))
+        r_can=rand(MvNormal(r, var(Y).*Matrix(Diagonal(ones(t)))))
         if all(i -> i > 0, r_can)
             pr_can=(1/sqrt(prod(r_can)))*exp(-0.5*sum((diff(r).-a_p.-b_p.*r_can[1:t-1])./r_can[1:t-1])/sig)
             pr=(1/sqrt(prod(r)))*exp(-0.5*sum((diff(r).-a_p.-b_p.*r[1:t-1])./r[1:t-1])/sig)
-            r_ratio=(pr_can/pr)*pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e), Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r_can,Sig_e), Y)
+            r_ratio=(pr_can/pr)*pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r_can,Sig_e), Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e), Y)
+            r_ratio=r_ratio*(pdf(MvNormal(Y, var(Y).*Matrix(Diagonal(ones(t)))), r))/(pdf(MvNormal(Y, var(Y).*Matrix(Diagonal(ones(t)))), r_can))
             if r_ratio>rand()
                 r=r_can
             end
@@ -158,17 +160,17 @@ sig_iterations_qmc=[]
 
 #Set variables
 t=length(Y)
-Sig=[100 0.0; 0.0 100]
-Sig=inv(Sig)
-mu_p=[0.00, 0.00]
+Sig_ab=[0.1 0.0; 0.0 0.1]
+Sig=inv(Sig_ab)
+mu_p=[0.01, 0.01]
 
 #Initial values
 r=Y
-sig=rand(InverseGamma(1))
-a_q=0.01/12
-b_q=0.01/12
-a_p=0.0001/12
-b_p=0.0001/12
+sig=rand(InverseGamma())
+a_q=rand(Uniform(0, sig))
+b_q=rand(Uniform(0, sig))
+a_p=rand(Uniform(0, sig))
+b_p=rand(Uniform(0, sig))
 
 for j in 1:100
 
@@ -182,12 +184,12 @@ for j in 1:100
     r_gibbs=[r]
 
     #Generate qmc points
-    u=lcg(16381, 572, Integer(0.5*t^2+1.5*t+8))
+    u=lcg(1021, 65, Integer(0.5*t^2+1.5*t+8))
 
     #Beta distributions
     beta_y=function(a, b, sig, tau)
         gam=sqrt(b^2+2*sig)
-        (a/sig)*(2*log(2*gam/((b+gam)*(exp(gam*tau)-1)+2*gam))+(b+gam)*tau)
+        (a/sig)*(2*log(2*gam/((b+gam)*(exp(gam*tau)-1)+2*gam)+(b+gam))*tau)
     end
 
     beta_r=function(b, sig, tau)
@@ -195,7 +197,7 @@ for j in 1:100
         2*(1-exp(gam*tau))/((b+gam)*(exp(gam*tau)-1)+2*gam)
     end
 
-    for i in 1:16381
+    for i in 1:1021
         global sig
         global r
         global b_q
@@ -207,7 +209,7 @@ for j in 1:100
         l11=sum(1 ./(sig.*r))
         l12= (t-1)/sig
         l22= sum(r./sig)
-        A=sum(diff(r)./r[1:length(r)-1])
+        A=sum(-diff(r)./r[1:length(r)-1])
         B=sum(-diff(r))
 
         #Find the mean
@@ -229,15 +231,16 @@ for j in 1:100
 
         #Generate Sig_e
         w=Y.-beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r
-        Sig_e=IW_QMC(u[i][3:Integer(0.5*(t^2+t)+2)],w*transpose(w)+Diagonal(ones(t)), t+1.0 )
+        Sig_e=IW_QMC(u[i][3:Integer(0.5*(t^2+t)+2)],w*transpose(w)+Diagonal(ones(t)), t+1.0 ) #Assuming a prior matrix of I and degs of freedom of t
         push!(Sige_gibbs, Sig_e)
 
         #Generate the (a,b)^Q
-        ab_can=MVN_QMC(u[i][Integer(0.5*(t^2+t)+3):Integer(0.5*(t^2+t)+4)],[a_q, b_q], [0.001 0.0; 0.0 0.001])
+        ab_can=MVN_QMC(u[i][Integer(0.5*(t^2+t)+3):Integer(0.5*(t^2+t)+4)],[a_q, b_q], [0.0001 0.0; 0.0 0.0001]) #Assuming low variance on diagonals
         a_can=ab_can[1]
         b_can=ab_can[2]
         if all(i -> i > 0, ab_can)
             q_ratio=pdf(MvNormal(beta_y(a_can, b_can, sig, t).-beta_r(b_can, sig, t).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e),Y)
+            q_ratio=q_ratio*pdf(MvNormal(mu_p, Sig_ab),ab_can)/pdf(MvNormal(mu_p, Sig_ab),[a_q, b_q]) #Prior distribution
             if q_ratio*(pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),[a_q, b_q])/pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),ab_can))>u[i][Integer(0.5*(t^2+t)+5)]
                 a_q=a_can
                 b_q=b_can
@@ -248,7 +251,7 @@ for j in 1:100
 
 
         #Generate new sigma
-        phi_sig=(diff(r).-a_p.-b_p.*r[1:t-1])./r[1:t-1]
+        phi_sig=((diff(r).-a_p.-b_p.*r[1:t-1]).^2)./r[1:t-1]
         sig_can=quantile(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), u[i][Integer(0.5*(t^2+t)+6)])
         sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can, t).-beta_r(b_q, sig_can, t).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e),Y)
         if u[i][Integer(0.5*(t^2+t)+7)]< sig_ratio*pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig_can)
@@ -256,12 +259,13 @@ for j in 1:100
         end
 
         #Generate new r
-        r_can=MVN_QMC(u[i][Integer(0.5*(t^2+t)+8):Integer(0.5*(t^2+3*t)+7)], beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e)
+        r_can=MVN_QMC(u[i][Integer(0.5*(t^2+t)+8):Integer(0.5*(t^2+3*t)+7)],r, var(Y).*Matrix(Diagonal(ones(t))))
         if all(i -> i > 0, r_can)
             pr_can=(1/sqrt(prod(r_can)))*exp(-0.5*sum((diff(r).-a_p.-b_p.*r_can[1:t-1])./r_can[1:t-1])/sig)
             pr=(1/sqrt(prod(r)))*exp(-0.5*sum((diff(r).-a_p.-b_p.*r[1:t-1])./r[1:t-1])/sig)
-            r_ratio=(pr_can/pr)*pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e), Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r_can,Sig_e), Y)
-            if r_ratio>u[i][Integer(0.5*(t^2+3*t)+8)]
+            r_ratio=(pr_can/pr)*pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r_can,Sig_e), Y)/pdf(MvNormal(beta_y(a_q, b_q, sig, t).-beta_r(b_q, sig, t).*r,Sig_e), Y)
+            r_ratio=r_ratio*(pdf(MvNormal(Y, var(Y).*Matrix(Diagonal(ones(t)))), r))/(pdf(MvNormal(Y, var(Y).*Matrix(Diagonal(ones(t)))), r_can))
+            if r_ratio>rand()
                 r=r_can
             end
         end
@@ -300,7 +304,6 @@ println("The mean reduction in variance is ", mean(var(r_iterations)./var(r_iter
 #Show results for ∑_ε
 
 println("Variance Reduction for the matrix Σ_ε:")
-
 display(map(x->round.(x, digits=3), var(Sige_iterations)./var(Sige_iterations_qmc)))
-
+println("")
 println("The mean reduction in variance is ", mean(var(Sige_iterations)./var(Sige_iterations_qmc)))
