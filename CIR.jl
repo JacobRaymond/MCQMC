@@ -28,15 +28,16 @@ Sig=inv(Sig_ab)
 mu_p=[0.01, 0.01]
 T=26 #Goes into loading functions; 6 months expressed in weeks
 
-#Initial values
-r=Y
-sig=rand(InverseGamma())
-a_q=rand(Uniform(0, sig))
-b_q=rand(Uniform(0, sig))
-a_p=rand(Uniform(0, sig))
-b_p=rand(Uniform(0, sig))
 
 for j in 1:100
+
+    #Initial values
+    r=Y
+    sig=rand()
+    a_q=rand()
+    b_q=rand()
+    a_p=rand()
+    b_p=rand()
 
     #Vector to house the observations
     ap_gibbs=[]
@@ -60,17 +61,11 @@ for j in 1:100
     end
 
     for i in 1:1021
-        global sig
-        global r
-        global b_q
-        global a_q
-        global b_p
-        global a_p
 
         #Create matrix components for r
-        l11=sum(1 ./(sig.*r))
-        l12= (t-1)/sig
-        l22= sum(r./sig)
+        l11=sum(1 ./(sig.*r[1:length(r)-1]))
+        l12= -(t-1)/sig
+        l22= sum(r[1:length(r)-1]./sig)
         A=sum(-diff(r)./r[1:length(r)-1])
         B=sum(-diff(r))
 
@@ -82,8 +77,9 @@ for j in 1:100
         vcov=inv(vcov)
 
         #New (a,b)^P
-        mean_p=inv(Sig+vcov)*(vcov*mu+Sig*mu_p)
-        abp=rand(MvNormal(mean_p, vcov+Sig))
+        Sig_p=inv(Sig+vcov)
+        mean_p=Sig_p*(vcov*mu+Sig*mu_p)
+        abp=rand(MvNormal(mean_p, Matrix(Hermitian(Sig_p))))
         if sum((diff(r).-abp[1].-abp[2].*r[1:t-1])./r[1:t-1])>0
             a_p=abp[1]
             b_p=abp[2]
@@ -93,17 +89,17 @@ for j in 1:100
 
         #Generate Sig_e
         w=Y.-beta_y(a_q, b_q, sig).-beta_r(b_q, sig).*r
-        Sig_e=rand(InverseWishart(t+1.0, w*transpose(w)+Diagonal(ones(t)))) #Assuming a prior matrix of I and degs of freedom of t
+        Sig_e=rand(InverseWishart(t+1.0, Matrix(Hermitian(w*transpose(w)+Diagonal(ones(t)))))) #Assuming a prior matrix of I and degs of freedom of t
         push!(Sige_gibbs, Sig_e)
 
         #Generate the (a,b)^Q
-        ab_can=rand(MvNormal([a_q, b_q], [0.0001 0.0; 0.0 0.0001])) #Assuming low variance on diagonals
+        ab_can=rand(MvNormal([a_q, b_q], [1.0 0.0; 0.0 1.0])) #The identity matrix is relatively fat tailed.
         a_can=ab_can[1]
         b_can=ab_can[2]
         if all(i -> i > 0, ab_can)
             q_ratio=pdf(MvNormal(beta_y(a_can, b_can, sig).-beta_r(b_can, sig).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig).-beta_r(b_q, sig).*r,Sig_e),Y)
             q_ratio=q_ratio*pdf(MvNormal(mu_p, Sig_ab),ab_can)/pdf(MvNormal(mu_p, Sig_ab),[a_q, b_q]) #Prior distribution
-            if q_ratio*(pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),[a_q, b_q])/pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),ab_can))>rand()
+            if q_ratio*(pdf(MvNormal([a_q, b_q], [1.0 0.0; 0.0 1.0]),[a_q, b_q])/pdf(MvNormal([a_q, b_q], [1.0 0.0; 0.0 1.0]),ab_can))>rand()
                 a_q=a_can
                 b_q=b_can
             end
@@ -114,12 +110,10 @@ for j in 1:100
 
         #Generate new sigma
         phi_sig=((diff(r).-a_p.-b_p.*r[1:t-1]).^2)./r[1:t-1]
-        if sum(phi_sig) >0
-            sig_can=rand(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2))
-            sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can).-beta_r(b_q, sig_can).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig).-beta_r(b_q, sig).*r,Sig_e),Y)
-            if rand()< sig_ratio*pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig_can)
-                sig=sig_can
-            end
+        sig_can=rand(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2))
+        sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can).-beta_r(b_q, sig_can).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig).-beta_r(b_q, sig).*r,Sig_e),Y)
+        if rand()< sig_ratio*pdf(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2), sig_can)
+            sig=sig_can
         end
 
         #Generate new r
@@ -146,7 +140,6 @@ for j in 1:100
 end
 end
 
-
 #### MCQMC ####
 
 @time begin
@@ -166,15 +159,15 @@ Sig=inv(Sig_ab)
 mu_p=[0.01, 0.01]
 T=26 #Goes into loading functions; 6 months expressed in weeks
 
-#Initial values
-r=Y
-sig=rand(InverseGamma())
-a_q=rand(Uniform(0, sig))
-b_q=rand(Uniform(0, sig))
-a_p=rand(Uniform(0, sig))
-b_p=rand(Uniform(0, sig))
-
 for j in 1:100
+
+    #Initial values
+    r=Y
+    sig=rand()
+    a_q=rand()
+    b_q=rand()
+    a_p=rand()
+    b_p=rand()
 
     #Vector to house the observations
     ap_gibbs=[]
@@ -200,17 +193,11 @@ for j in 1:100
     end
 
     for i in 1:1021
-        global sig
-        global r
-        global b_q
-        global a_q
-        global b_p
-        global a_p
 
         #Create matrix components for r
-        l11=sum(1 ./(sig.*r))
-        l12= (t-1)/sig
-        l22= sum(r./sig)
+        l11=sum(1 ./(sig.*r[1:length(r)-1]))
+        l12= -(t-1)/sig
+        l22= sum(r[1:length(r)-1]./sig)
         A=sum(-diff(r)./r[1:length(r)-1])
         B=sum(-diff(r))
 
@@ -222,8 +209,9 @@ for j in 1:100
         vcov=inv(vcov)
 
         #New (a,b)^P
-        mean_p=inv(Sig+vcov)*(vcov*mu+Sig*mu_p)
-        abp=MVN_QMC(u[i][1:2], mean_p, vcov+Sig)
+        Sig_p=inv(Sig+vcov)
+        mean_p=Sig_p*(vcov*mu+Sig*mu_p)
+        abp=MVN_QMC(u[i][1:2], mean_p, Matrix(Hermitian(Sig_p)))
         if sum((diff(r).-abp[1].-abp[2].*r[1:t-1])./r[1:t-1])>0
             a_p=abp[1]
             b_p=abp[2]
@@ -237,13 +225,13 @@ for j in 1:100
         push!(Sige_gibbs, Sig_e)
 
         #Generate the (a,b)^Q
-        ab_can=MVN_QMC(u[i][Integer(0.5*(t^2+t)+3):Integer(0.5*(t^2+t)+4)],[a_q, b_q], [0.0001 0.0; 0.0 0.0001]) #Assuming low variance on diagonals
+        ab_can=MVN_QMC(u[i][Integer(0.5*(t^2+t)+3):Integer(0.5*(t^2+t)+4)],[a_q, b_q], [1.0 0.0; 0.0 1.0]) #The identity matrix is relatively fat tailed.
         a_can=ab_can[1]
         b_can=ab_can[2]
         if all(i -> i > 0, ab_can)
             q_ratio=pdf(MvNormal(beta_y(a_can, b_can, sig).-beta_r(b_can, sig).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig).-beta_r(b_q, sig).*r,Sig_e),Y)
             q_ratio=q_ratio*pdf(MvNormal(mu_p, Sig_ab),ab_can)/pdf(MvNormal(mu_p, Sig_ab),[a_q, b_q]) #Prior distribution
-            if q_ratio*(pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),[a_q, b_q])/pdf(MvNormal([a_q, b_q], [0.001 0.0; 0.0 0.001]),ab_can))>u[i][Integer(0.5*(t^2+t)+5)]
+            if q_ratio*(pdf(MvNormal([a_q, b_q], [1.0 0.0; 0.0 1.0]),[a_q, b_q])/pdf(MvNormal([a_q, b_q], [1.0 0.0; 0.0 1.0]),ab_can))>u[i][Integer(0.5*(t^2+t)+5)]
                 a_q=a_can
                 b_q=b_can
             end
@@ -254,9 +242,16 @@ for j in 1:100
 
         #Generate new sigma
         phi_sig=((diff(r).-a_p.-b_p.*r[1:t-1]).^2)./r[1:t-1]
-        sig_can=quantile(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), u[i][Integer(0.5*(t^2+t)+6)])
+        sig_can=quantile(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2), u[i][Integer(0.5*(t^2+t)+6)])
         sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can).-beta_r(b_q, sig_can).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig).-beta_r(b_q, sig).*r,Sig_e),Y)
-        if u[i][Integer(0.5*(t^2+t)+7)]< sig_ratio*pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+t/2, 1.0+sum(phi_sig)/2), sig_can)
+        if u[i][Integer(0.5*(t^2+t)+7)]< sig_ratio*pdf(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2), sig_can)
+            sig=sig_can
+        end
+
+        phi_sig=((diff(r).-a_p.-b_p.*r[1:t-1]).^2)./r[1:t-1]
+        sig_can=rand(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2))
+        sig_ratio=pdf(MvNormal(beta_y(a_q, b_q, sig_can).-beta_r(b_q, sig_can).*r,Sig_e),Y)/pdf(MvNormal(beta_y(a_q, b_q, sig).-beta_r(b_q, sig).*r,Sig_e),Y)
+        if rand()< sig_ratio*pdf(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2), sig)/pdf(InverseGamma(1.0+(t-1)/2, 1.0+sum(phi_sig)/2), sig_can)
             sig=sig_can
         end
 
@@ -292,20 +287,20 @@ cols=["a^P", "b^P", "a^Q", "b^Q", "σ^2"]
 data_ab_mc=vcat(var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations_qmc), var(sig_iterations))
 data_ab_qmc=vcat(var(ap_iterations_qmc), var(bp_iterations_qmc), var(aq_iterations_qmc), var(bq_iterations_qmc), var(sig_iterations_qmc))
 data_ab=hcat(cols, data_ab_mc, data_ab_qmc, data_ab_mc./data_ab_qmc)
-data_ab[6:20]=map(x->round.(x, digits=3), data_ab[6:20])
+data_ab[6:20]=map(x->round.(x, digits=10), data_ab[6:20])
 pretty_table(data_ab, header_ab)
 
 #Shows results for r
-println("Variance of the elements in vector r:")
-data_r=hcat(var(r_iterations), var(r_iterations_qmc), var(r_iterations)./var(r_iterations_qmc))
-data_r=map(x->round.(x, digits=3), data_r)
-header_r=["Variance (MC)", "Variance (QMC)", "Ratio"]
-pretty_table(data_r, header_r)
-println("The mean reduction in variance is ", mean(var(r_iterations)./var(r_iterations_qmc)))
+#println("Variance of the elements in vector r:")
+#data_r=hcat(var(r_iterations), var(r_iterations_qmc), var(r_iterations)./var(r_iterations_qmc))
+#data_r=map(x->round.(x, digits=3), data_r)
+#header_r=["Variance (MC)", "Variance (QMC)", "Ratio"]
+#pretty_table(data_r, header_r)
+#println("The mean reduction in variance is ", mean(var(r_iterations)./var(r_iterations_qmc)))
 
 #Show results for ∑_ε
 
-println("Variance Reduction for the matrix Σ_ε:")
-display(map(x->round.(x, digits=3), var(Sige_iterations)./var(Sige_iterations_qmc)))
-println("")
-println("The mean reduction in variance is ", mean(var(Sige_iterations)./var(Sige_iterations_qmc)))
+#println("Variance Reduction for the matrix Σ_ε:")
+#display(map(x->round.(x, digits=3), var(Sige_iterations)./var(Sige_iterations_qmc)))
+#println("")
+#println("The mean reduction in variance is ", mean(var(Sige_iterations)./var(Sige_iterations_qmc)))
