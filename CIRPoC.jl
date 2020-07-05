@@ -1,7 +1,7 @@
 using CSV, Distributions, LinearAlgebra
 
 #Import the data  (https://fred.stlouisfed.org/graph/?g=r6hR)
-Y_dat=CSV.read("/Users/JacobRaymond 1/Desktop/WTB6MS.csv").WTB6MS./100
+Y_dat=CSV.read("/Users/JacobRaymond 1/Library/Mobile Documents/com~apple~CloudDocs/Maitrise/Papier/MCQMC/WTB6MS.csv").WTB6MS./100
 
 
 #Set variables
@@ -11,10 +11,10 @@ del=del_plus/(M+1)
 T=length(Y_dat)
 
 #Simulate initial parameter values
-sig=0.0014 #Initial value: the variance of the yields
+sig=var(Y_dat)
 sig_vec=[sig]
-a=rand(Uniform(0, sqrt(sig)))
-b=rand(Uniform(0, sqrt(sig)))
+a=rand()
+b=rand()
 phi=[[a,b]]
 
 #Create Y
@@ -28,10 +28,7 @@ pop!(Y)
 function augsim(y, a, b, del, sig)
     mean_sim=y+(a-b*y)*del
     var_sim=sig*del*y
-    candidate=rand(Normal(mean_sim, sqrt(var_sim)))
-    if candidate>0
-        candidate
-    else y end
+    rand(Normal(mean_sim, sqrt(var_sim)))
 end
 
 #Number of iterations
@@ -94,12 +91,12 @@ for k in 1:N
 end
 
 #Estimate for a and b (500 observation burn)
-println(mean(phi[500:1500]))
+println("(a, b)=", mean(phi[500:1500]))
 
 #Estimate for sigma^2
-println(mean(sig_vec[500:1500]))
+println("sigma^2=", mean(sqrt.(sig_vec[500:1500])))
 
 #Estimate for the mean of the y_dat
 a_es=mean(phi[500:1500])[1]
 b_es=mean(phi[500:1500])[2]
-print(a_es/b_es) #Should be close to 0.023
+println("Ratio:", a_es/b_es) #Should be close to 0.023
