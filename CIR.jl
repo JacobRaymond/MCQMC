@@ -6,7 +6,7 @@ include("MVN_QMC.jl")
 #Import the data  (https://fred.stlouisfed.org/graph/?g=r6hR)
 Y=CSV.read("/Users/JacobRaymond 1/Library/Mobile Documents/com~apple~CloudDocs/Maitrise/Papier/MCQMC/WTB6MS.csv").WTB6MS./100
 Y=Y[497:520]
-Y=Y./12
+Y=Y./52
 
 #### MCMC ####
 
@@ -281,13 +281,22 @@ end
 
 #### Output Results ####
 
-#Show results for the (a,b)s and sigma^2
+#Show variance for the (a,b)s and sigma^2
 header_ab=["","Variance (MC)", "Variance (QMC)", "Ratio"]
 cols=["a^P", "b^P", "a^Q", "b^Q", "σ^2"]
 data_ab_mc=vcat(var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations_qmc), var(sig_iterations))
 data_ab_qmc=vcat(var(ap_iterations_qmc), var(bp_iterations_qmc), var(aq_iterations_qmc), var(bq_iterations_qmc), var(sig_iterations_qmc))
 data_ab=hcat(cols, data_ab_mc, data_ab_qmc, data_ab_mc./data_ab_qmc)
 data_ab[6:20]=map(x->round.(x, digits=10), data_ab[6:20])
+pretty_table(data_ab, header_ab)
+
+#Show results for the (a,b)s and sigma^2
+header_ab=["","Results (MC)", "Results (QMC)"]
+cols=["a^P", "b^P", "a^Q", "b^Q", "σ^2"]
+data_ab_mc=vcat(mean(ap_iterations), mean(bp_iterations), mean(aq_iterations), mean(bq_iterations_qmc), mean(sig_iterations))
+data_ab_qmc=vcat(mean(ap_iterations_qmc), mean(bp_iterations_qmc), mean(aq_iterations_qmc), mean(bq_iterations_qmc), mean(sig_iterations_qmc))
+data_ab=hcat(cols, data_ab_mc, data_ab_qmc)
+data_ab[6:15]=map(x->round.(x, digits=10), data_ab[6:15])
 pretty_table(data_ab, header_ab)
 
 #Shows results for r
