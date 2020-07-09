@@ -18,7 +18,7 @@ IW_QMC=function(u, X, v)
     A=A+Diagonal(c)
 
     #Bartlett Decomposition
-    D=cholesky(Hermitian(X)).L
+    D=cholesky(Hermitian(inv(X))).L
     DA=inv(D*A)
     Transpose(DA)*DA
 end
