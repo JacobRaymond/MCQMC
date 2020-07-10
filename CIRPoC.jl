@@ -82,12 +82,11 @@ for k in 1:N
 
     #Calculate some variables for the distribution of sigma^2
     E=0.5*(T-1)*(M+1)
-
     F=sum(((diff(Y_star).-(a.-b*Y_star[1:length(Y_star)-1])*del).^2)./(2*Y_star[1:length(Y_star)-1]))
 
     #Generate a new value of sigma^2
     sig=rand(InverseGamma(E, F))
-    push!(sig_vec, sig)
+    push!(sig_vec, sig^2)
 end
 
 #Estimate for a and b (500 observation burn)
