@@ -25,7 +25,7 @@ IW_QMC.jl: Generate QMC draws from a IW(v, X) distribution. Based on the inverse
 
 ## Drafts
 
-** These codes contain various proof of concepts and drafts. I make no guarantee that they will actually output sensible results - they are archived here for reference purposes **
+**These codes contain various proof of concepts and drafts. I make no guarantee that they will actually output sensible results - they are archived here for reference purposes**
 
 CIR.jl: A Gibbs sampler to estimate the parameters of a Cox-Ingersoll-Ross model, based on the method proposed by Poulson and Johannes. See http://home.uchicago.edu/~lhansen/JP_handbook.pdf for details.
 
