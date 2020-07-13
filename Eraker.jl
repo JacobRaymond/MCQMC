@@ -7,7 +7,7 @@ Y_dat=Y_dat./100
 Y_dat=Y_dat[(521-(2*52)):520]
 
 #Set variables
-m=5
+m=1
 del=1/m
 
 #### MCMC ####
@@ -16,13 +16,13 @@ del=1/m
 phi_gibbs_mc=[]
 sig_gibbs_mc=[]
 
-for l in 1:100
+for l in 1:25
     global del
 
     #Simulate initial parameter values
     sig=rand()
     sig_vec=[sig]
-    a=rand(Uniform(0, sig))
+    a=rand()
     b=rand(Uniform(0, sig))
     phi=[[a,b]]
 
@@ -75,10 +75,9 @@ for l in 1:100
         #Mean and variance
         var_ab=inv(Transpose(X)*X)
         mu=var_ab*Transpose(X)*y
-
+        
         #Generate new value
         phi_it=rand(MvNormal(mu, sig*var_ab))
-
 
         #Save values
         a=phi_it[1]
@@ -95,8 +94,8 @@ for l in 1:100
     end
 
     #Save
-    push!(phi_gibbs_mc, mean(phi))
-    push!(sig_gibbs_mc, mean(sig_vec))
+    push!(phi_gibbs_mc, phi)
+    push!(sig_gibbs_mc, sig)
 end
 
 
@@ -108,13 +107,13 @@ include("MVN_QMC.jl")
 phi_gibbs_qmc=[]
 sig_gibbs_qmc=[]
 
-for l in 1:100
+for l in 1:25
     global del
 
     #Simulate initial parameter values
     sig=rand()
     sig_vec=[sig]
-    a=rand(Uniform(0, sig))
+    a=rand()
     b=rand(Uniform(0, sig))
     phi=[[a,b]]
 
