@@ -29,7 +29,7 @@ pathsim=function(a, b, sigma_sq,  Y, delta=1, plength=length(Y)){
   for(i in 2:plength){
     p[i]<--1
     while(p[i]<0){
-      p[i]<-p[i-1]+(a+b*p[i-1])*del+sqrt(sigma_sq*del*p[i-1])*rnorm(1)
+      p[i]<-p[i-1]+(a+b*p[i-1])*delta+sqrt(sigma_sq*delta*p[i-1])*rnorm(1)
     }
   }
   p
@@ -39,7 +39,7 @@ pathsim=function(a, b, sigma_sq,  Y, delta=1, plength=length(Y)){
 CIRPaths=function(a, b, sigma_sq, Y, paths=100, delta=1,  plength=length(Y), alpha=0.05){
   
   #Simulate multiple paths and extract the confidence interval bounds
-  pathlist= map(seq_len(paths), ~pathsim(a, b, sigma, del, Y)) %>% 
+  pathlist= map(seq_len(paths), ~pathsim(a, b, sigma, Y, delta, plength)) %>% 
     bind_cols() %>% 
     mutate(lb=apply(., 1, quantile, probs = alpha), ub=apply(., 1, quantile, probs = 1-alpha))
   
