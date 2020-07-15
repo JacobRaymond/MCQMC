@@ -23,7 +23,7 @@ for l in 1:25
     sig=rand()
     sig_vec=[sig]
     a=rand()
-    b=rand(Uniform(0, sig))
+    b=rand()
     phi=[[a,b]]
 
     #Initial path
@@ -42,7 +42,7 @@ for l in 1:25
     T=length(Y)
 
     #Number of iterations
-    N=1021
+    N=4093
 
     #Gibbs Sampler
     for k in 1:N
@@ -114,7 +114,7 @@ for l in 1:25
     sig=rand()
     sig_vec=[sig]
     a=rand()
-    b=rand(Uniform(0, sig))
+    b=rand()
     phi=[[a,b]]
 
     #Initial path
@@ -133,9 +133,9 @@ for l in 1:25
     T=length(Y)
 
     #Generate points
-    N=1021
-    mult=76
-    u=lcg(N, mult, 2*(T-1)+3)
+    N=4093
+    mult=1516
+    u=lcg(N, mult, 2*(T-2)+3)
 
     #Gibbs Sampler
     for k in 1:N
@@ -146,12 +146,12 @@ for l in 1:25
             mean_y=(Y[i-1]+Y[i+1])/2
             sig_y=sqrt(0.5*sig*del)
 
-            prop_y=quantile(Normal(Y[i], var(Y)), u[k][2*i])
+            prop_y=quantile(Normal(Y[i], var(Y)), u[k][2+i])
 
             yratio=pdf(Normal(mean_y, sig_y), prop_y)/pdf(Normal(mean_y, sig_y), Y[i])
             yratio=pdf(Normal(Y[i], var(Y)),  Y[i])/pdf(Normal(Y[i], var(Y)), prop_y)*yratio
 
-            if yratio>u[k][1+2*i]
+            if yratio>u[k][T+i]
                 push!(Y_new, prop_y)
             else
                 push!(Y_new, Y[i])
