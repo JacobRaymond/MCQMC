@@ -3,11 +3,11 @@ using CSV, Distributions, LinearAlgebra, PrettyTables
 #Import the data  (https://fred.stlouisfed.org/graph/?g=r6hR)
 Y_dat=CSV.read("/Users/JacobRaymond 1/Library/Mobile Documents/com~apple~CloudDocs/Maitrise/Papier/MCQMC/WTB6MS.csv").WTB6MS
 #Y=Y./100
-Y_dat=Y_dat./100
+Y_dat=Y_dat
 Y_dat=Y_dat[(521-(2*52)):520]
 
 #Set variables
-m=1
+m=5
 del=1/m
 
 #### MCMC ####
@@ -75,7 +75,7 @@ for l in 1:25
         #Mean and variance
         var_ab=inv(Transpose(X)*X)
         mu=var_ab*Transpose(X)*y
-        
+
         #Generate new value
         phi_it=rand(MvNormal(mu, sig*var_ab))
 
@@ -94,8 +94,8 @@ for l in 1:25
     end
 
     #Save
-    push!(phi_gibbs_mc, phi)
-    push!(sig_gibbs_mc, sig)
+    push!(phi_gibbs_mc, mean(phi))
+    push!(sig_gibbs_mc, mean(sig_vec))
 end
 
 
@@ -134,8 +134,8 @@ for l in 1:25
 
     #Generate points
     N=1021
-    mult=65
-    u=lcg(N, mult, 3)
+    mult=76
+    u=lcg(N, mult, 2*(T-1)+3)
 
     #Gibbs Sampler
     for k in 1:N
@@ -146,12 +146,12 @@ for l in 1:25
             mean_y=(Y[i-1]+Y[i+1])/2
             sig_y=sqrt(0.5*sig*del)
 
-            prop_y=rand(Normal(Y[i], var(Y)))
+            prop_y=quantile(Normal(Y[i], var(Y)), u[k][2*i])
 
             yratio=pdf(Normal(mean_y, sig_y), prop_y)/pdf(Normal(mean_y, sig_y), Y[i])
             yratio=pdf(Normal(Y[i], var(Y)),  Y[i])/pdf(Normal(Y[i], var(Y)), prop_y)*yratio
 
-            if yratio>rand()
+            if yratio>u[k][1+2*i]
                 push!(Y_new, prop_y)
             else
                 push!(Y_new, Y[i])
