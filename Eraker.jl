@@ -2,12 +2,12 @@ using CSV, Distributions, LinearAlgebra, PrettyTables
 
 #Import the data  (https://fred.stlouisfed.org/graph/?g=r6hR)
 Y_dat=CSV.read("/Users/JacobRaymond 1/Library/Mobile Documents/com~apple~CloudDocs/Maitrise/Papier/MCQMC/WTB6MS.csv").WTB6MS
-#Y=Y./100
+Y_dat=Y_dat./100
 Y_dat=Y_dat
-Y_dat=Y_dat[(521-(2*52)):520]
+Y_dat=Y_dat[(521-(3*52)):520]
 
 #Set variables
-m=5
+m=7
 del=1/m
 
 #### MCMC ####
@@ -16,7 +16,7 @@ del=1/m
 phi_gibbs_mc=[]
 sig_gibbs_mc=[]
 
-for l in 1:25
+for l in 1:100
     global del
 
     #Simulate initial parameter values
@@ -53,12 +53,14 @@ for l in 1:25
             mean_y=(Y[i-1]+Y[i+1])/2
             sig_y=sqrt(0.5*sig*del)
 
+
             prop_y=rand(Normal(Y[i], var(Y)))
+
 
             yratio=pdf(Normal(mean_y, sig_y), prop_y)/pdf(Normal(mean_y, sig_y), Y[i])
             yratio=pdf(Normal(Y[i], var(Y)),  Y[i])/pdf(Normal(Y[i], var(Y)), prop_y)*yratio
 
-            if yratio>rand()
+            if yratio>rand() && prop_y >0
                 push!(Y_new, prop_y)
             else
                 push!(Y_new, Y[i])
@@ -107,7 +109,7 @@ include("MVN_QMC.jl")
 phi_gibbs_qmc=[]
 sig_gibbs_qmc=[]
 
-for l in 1:25
+for l in 1:100
     global del
 
     #Simulate initial parameter values
@@ -151,7 +153,7 @@ for l in 1:25
             yratio=pdf(Normal(mean_y, sig_y), prop_y)/pdf(Normal(mean_y, sig_y), Y[i])
             yratio=pdf(Normal(Y[i], var(Y)),  Y[i])/pdf(Normal(Y[i], var(Y)), prop_y)*yratio
 
-            if yratio>u[k][T+i]
+            if yratio>u[k][T+i]  && prop_y >0
                 push!(Y_new, prop_y)
             else
                 push!(Y_new, Y[i])
