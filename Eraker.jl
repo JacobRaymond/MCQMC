@@ -3,7 +3,6 @@ using CSV, Distributions, LinearAlgebra, PrettyTables
 #Import the data  (https://fred.stlouisfed.org/graph/?g=r6hR)
 Y_dat=CSV.read("/Users/JacobRaymond 1/Library/Mobile Documents/com~apple~CloudDocs/Maitrise/Papier/MCQMC/WTB6MS.csv").WTB6MS
 Y_dat=Y_dat./100
-Y_dat=Y_dat
 Y_dat=Y_dat[(521-(3*52)):520]
 
 #Set variables
