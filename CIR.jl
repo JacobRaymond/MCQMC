@@ -5,8 +5,7 @@ include("MVN_QMC.jl")
 
 #Import the data  (https://fred.stlouisfed.org/graph/?g=r6hR)
 Y=CSV.read("/Users/JacobRaymond 1/Library/Mobile Documents/com~apple~CloudDocs/Maitrise/Papier/MCQMC/WTB6MS.csv").WTB6MS./100
-Y=Y[497:520]
-Y=Y./52
+Y=Y[310:335]
 
 #### MCMC ####
 
@@ -26,7 +25,7 @@ t=length(Y)
 Sig_ab=[0.1 0.0; 0.0 0.1]
 Sig=inv(Sig_ab)
 mu_p=[0.01, 0.01]
-T=26 #Goes into loading functions; 6 months expressed in weeks
+T=length(Y) #Goes into loading functions; 6 months expressed in weeks
 
 
 for j in 1:100
@@ -157,7 +156,7 @@ t=length(Y)
 Sig_ab=[0.1 0.0; 0.0 0.1]
 Sig=inv(Sig_ab)
 mu_p=[0.01, 0.01]
-T=26 #Goes into loading functions; 6 months expressed in weeks
+T=length(Y) #Goes into loading functions; 6 months expressed in weeks
 
 for j in 1:100
 
@@ -179,7 +178,7 @@ for j in 1:100
     r_gibbs=[r]
 
     #Generate qmc points
-    u=lcg(1021, 65, Integer(0.5*t^2+1.5*t+8))
+    u=lcg(1021, 76, Integer(0.5*t^2+1.5*t+8))
 
     #Loading functions distributions
     beta_y=function(a, b, sig)
@@ -283,11 +282,12 @@ end
 
 #Show variance for the (a,b)s and sigma^2
 header_ab=["","Variance (MC)", "Variance (QMC)", "Ratio"]
-cols=["a^P", "b^P", "a^Q", "b^Q", "σ^2"]
-data_ab_mc=vcat(var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations_qmc), var(sig_iterations))
-data_ab_qmc=vcat(var(ap_iterations_qmc), var(bp_iterations_qmc), var(aq_iterations_qmc), var(bq_iterations_qmc), var(sig_iterations_qmc))
-data_ab=hcat(cols, data_ab_mc, data_ab_qmc, data_ab_mc./data_ab_qmc)
-data_ab[6:20]=map(x->round.(x, digits=10), data_ab[6:20])
+cols=["a^P", "b^P", "a^Q", "b^Q", "∑ (Mean)", "σ^2", "r (Mean)"]
+data_ab_mc=vcat(var(ap_iterations), var(bp_iterations), var(aq_iterations), var(bq_iterations_qmc), mean(var(Sige_iterations)), var(sig_iterations), mean(var(r_iterations)))
+data_ab_qmc=vcat(var(ap_iterations_qmc), var(bp_iterations_qmc), var(aq_iterations_qmc), var(bq_iterations_qmc), mean(var(Sige_iterations_qmc)),var(sig_iterations_qmc), mean(var(r_iterations_qmc)))
+data_ab=hcat( data_ab_mc, data_ab_qmc, data_ab_mc./data_ab_qmc)
+data_ab=map(x->round.(x, digits=5), data_ab)
+data_ab=hcat(cols, data_ab)
 pretty_table(data_ab, header_ab)
 
 #Show results for the (a,b)s and sigma^2
@@ -296,20 +296,5 @@ cols=["a^P", "b^P", "a^Q", "b^Q", "σ^2"]
 data_ab_mc=vcat(mean(ap_iterations), mean(bp_iterations), mean(aq_iterations), mean(bq_iterations_qmc), mean(sig_iterations))
 data_ab_qmc=vcat(mean(ap_iterations_qmc), mean(bp_iterations_qmc), mean(aq_iterations_qmc), mean(bq_iterations_qmc), mean(sig_iterations_qmc))
 data_ab=hcat(cols, data_ab_mc, data_ab_qmc)
-data_ab[6:15]=map(x->round.(x, digits=10), data_ab[6:15])
+data_ab[6:15]=map(x->round.(x, digits=5), data_ab[6:15])
 pretty_table(data_ab, header_ab)
-
-#Shows results for r
-#println("Variance of the elements in vector r:")
-#data_r=hcat(var(r_iterations), var(r_iterations_qmc), var(r_iterations)./var(r_iterations_qmc))
-#data_r=map(x->round.(x, digits=3), data_r)
-#header_r=["Variance (MC)", "Variance (QMC)", "Ratio"]
-#pretty_table(data_r, header_r)
-#println("The mean reduction in variance is ", mean(var(r_iterations)./var(r_iterations_qmc)))
-
-#Show results for ∑_ε
-
-#println("Variance Reduction for the matrix Σ_ε:")
-#display(map(x->round.(x, digits=3), var(Sige_iterations)./var(Sige_iterations_qmc)))
-#println("")
-#println("The mean reduction in variance is ", mean(var(Sige_iterations)./var(Sige_iterations_qmc)))
