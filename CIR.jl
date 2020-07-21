@@ -25,7 +25,7 @@ t=length(Y)
 Sig_ab=[0.1 0.0; 0.0 0.1]
 Sig=inv(Sig_ab)
 mu_p=[0.01, 0.01]
-T=length(Y) #Goes into loading functions; 6 months expressed in weeks
+T=26 #Goes into loading functions; 6 months expressed in weeks
 
 
 for j in 1:100
@@ -156,7 +156,7 @@ t=length(Y)
 Sig_ab=[0.1 0.0; 0.0 0.1]
 Sig=inv(Sig_ab)
 mu_p=[0.01, 0.01]
-T=length(Y) #Goes into loading functions; 6 months expressed in weeks
+T=26 #Goes into loading functions; 6 months expressed in weeks
 
 for j in 1:100
 
